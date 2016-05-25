@@ -34,6 +34,15 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+/**
+ * <pre>
+ * Lifecycle组件管理器.
+ * 用于管理Lifecycle组件的生命周期过程(supervise, unsupervise).
+ * 其本身也是个Lifecycle组件. 
+ * </pre> 
+ * @author lvchenggang
+ *
+ */
 public class LifecycleSupervisor implements LifecycleAware {
 
   private static final Logger logger = LoggerFactory

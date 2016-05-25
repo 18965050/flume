@@ -54,6 +54,11 @@ import com.google.common.collect.Lists;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
+/**
+ * Flume Agent Main类
+ * @author lvchenggang
+ *
+ */
 public class Application {
 
   private static final Logger logger = LoggerFactory
@@ -77,6 +82,7 @@ public class Application {
   }
 
   public synchronized void start() {
+	  /*components -> [PollingPropertiesFileConfigurationProvider]*/
     for(LifecycleAware component : components) {
       supervisor.supervise(component,
           new SupervisorPolicy.AlwaysRestartPolicy(), LifecycleState.START);
@@ -134,11 +140,18 @@ public class Application {
     }
   }
 
+  /**
+   * 启动各个组件
+   * @param materializedConfiguration
+   */
   private void startAllComponents(MaterializedConfiguration materializedConfiguration) {
     logger.info("Starting new configuration:{}", materializedConfiguration);
 
     this.materializedConfiguration = materializedConfiguration;
 
+    /**
+     * (1) 先启动Channel
+     */
     for (Entry<String, Channel> entry :
       materializedConfiguration.getChannels().entrySet()) {
       try{
@@ -150,6 +163,9 @@ public class Application {
       }
     }
 
+    /**
+     * (2) 检查Channel是否启动成功
+     */
     /*
      * Wait for all channels to start.
      */
@@ -167,6 +183,9 @@ public class Application {
       }
     }
 
+    /**
+     * 启动SinkRunner. SinkRunner只有Polling(轮询)这一种方式
+     */
     for (Entry<String, SinkRunner> entry : materializedConfiguration.getSinkRunners()
         .entrySet()) {
       try{
@@ -178,6 +197,9 @@ public class Application {
       }
     }
 
+    /**
+     * 启动SourceRunner(EventDrivenSourceRunner, PollableSourceRunner). 
+     */
     for (Entry<String, SourceRunner> entry : materializedConfiguration
         .getSourceRunners().entrySet()) {
       try{
@@ -226,6 +248,10 @@ public class Application {
 
   }
 
+  /**
+   * 入口
+   * @param args
+   */
   public static void main(String[] args) {
 
     try {
@@ -243,6 +269,7 @@ public class Application {
       option.setRequired(false);
       options.addOption(option);
 
+      //当不允许热加载配置文件时使用
       option = new Option(null, "no-reload-conf", false,
           "do not reload config file if changed");
       options.addOption(option);
@@ -323,10 +350,18 @@ public class Application {
         List<LifecycleAware> components = Lists.newArrayList();
 
         if (reload) {
+        	/**
+        	 * <pre>
+        	 * 使用google EventBus实现同步pub-sub事件通知机制.步骤如下:
+        	 * (1) 通过EventBus.register()方法注册监听对象
+        	 * (2) 通过EventBus.post(event)发布事件. 这里在 org.apache.flume.node.PollingPropertiesFileConfigurationProvider$FileWatcherRunnable 线程中post
+        	 * (3) Application中拥有@Subscribe注解的方法或被事件触发. 这里为handleConfigurationEvent()方法
+        	 * </pre>
+        	 */
           EventBus eventBus = new EventBus(agentName + "-event-bus");
           PollingPropertiesFileConfigurationProvider configurationProvider =
             new PollingPropertiesFileConfigurationProvider(
-              agentName, configurationFile, eventBus, 30);
+              agentName, configurationFile, eventBus, 30 /*单位: 秒*/);
           components.add(configurationProvider);
           application = new Application(components);
           eventBus.register(application);
@@ -341,6 +376,9 @@ public class Application {
       }
       application.start();
 
+      /**
+       * 注册进程销毁的钩子函数
+       */
       final Application appReference = application;
       Runtime.getRuntime().addShutdownHook(new Thread("agent-shutdown-hook") {
         @Override

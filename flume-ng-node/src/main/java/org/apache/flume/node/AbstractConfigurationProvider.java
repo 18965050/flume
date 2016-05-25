@@ -17,8 +17,15 @@
  */
 package org.apache.flume.node;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
 
 import org.apache.flume.Channel;
 import org.apache.flume.ChannelFactory;
@@ -84,6 +91,9 @@ public abstract class AbstractConfigurationProvider implements
 
   protected abstract FlumeConfiguration getFlumeConfiguration();
 
+  /**
+   * 读取配置文件, 并实例化Flume对象
+   */
   public MaterializedConfiguration getConfiguration() {
     MaterializedConfiguration conf = new SimpleMaterializedConfiguration();
     FlumeConfiguration fconfig = getFlumeConfiguration();
@@ -93,8 +103,26 @@ public abstract class AbstractConfigurationProvider implements
       Map<String, SourceRunner> sourceRunnerMap = Maps.newHashMap();
       Map<String, SinkRunner> sinkRunnerMap = Maps.newHashMap();
       try {
+    	  /**
+    	   * 初始化并加载Channel
+    	   */
         loadChannels(agentConf, channelComponentMap);
+        
+        /**
+         * <pre>
+         * 初始化并加载Source.
+         * 一个Source可对应多个Channel. 创建ChannelSelector和ChannelProcessor. ChannelSelector默认为ReplicatingChannelSelector
+         * 创建处理的Source对象被封装到SourceRunner中(PollableSourceRunner, EventDrivenSourceRunner)
+         * </pre>
+         */
         loadSources(agentConf, channelComponentMap, sourceRunnerMap);
+        
+        /**
+         * <pre>
+         * 初始化并加载Sink
+         * Sink和Channel一一对应. 创建SinkProcessor, SinkRunner对象
+         * </pre>
+         */
         loadSinks(agentConf, channelComponentMap, sinkRunnerMap);
         Set<String> channelNames =
             new HashSet<String>(channelComponentMap.keySet());

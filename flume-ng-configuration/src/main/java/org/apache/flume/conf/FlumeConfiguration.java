@@ -56,6 +56,17 @@ import org.slf4j.LoggerFactory;
  * @see org.apache.flume.node.ConfigurationProvider
  *
  */
+
+/**
+ * <pre>
+ * Flume配置信息. 对应Flume 配置文件
+ * (1) Flume可包含多个Agent配置
+ * (2) 一个Agent包含多个Source,Channel和SinkGroup, Sink配置
+ * (3) 一个SinkGroup包含多个Sink配置
+ * </pre>
+ * @author lvchenggang
+ *
+ */
 public class FlumeConfiguration {
 
   private static final Logger logger = LoggerFactory
@@ -210,6 +221,11 @@ public class FlumeConfiguration {
     return aconf.addProperty(configKey, value);
   }
 
+  /**
+   * Agent配置信息
+   * @author lvchenggang
+   *
+   */
   public static class AgentConfiguration {
 
     private final String agentName;

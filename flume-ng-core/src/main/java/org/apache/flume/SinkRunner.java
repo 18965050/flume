@@ -78,6 +78,9 @@ public class SinkRunner implements LifecycleAware {
 
     policy.start();
 
+    /**
+     * Sink只有Polling这一种
+     */
     runner = new PollingRunner();
 
     runner.policy = policy;
